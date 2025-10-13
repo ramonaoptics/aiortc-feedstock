@@ -1,4 +1,4 @@
-{% set version = "1.13.0" %}
+{% set version = "1.14.0" %}
 
 package:
   name: aiortc
@@ -6,14 +6,14 @@ package:
 
 source:
   url: https://pypi.org/packages/source/a/aiortc/aiortc-{{ version }}.tar.gz
-  sha256: 5d209975c22d0910fb5a0f0e2caa828f2da966c53580f7c7170ac3a16a871620
+  sha256: adc8a67ace10a085721e588e06a00358ed8eaf5f6b62f0a95358ff45628dd762
   patches:
     - loosen_av_pin.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  number: 1
+  number: 0
 
 requirements:
   host:
