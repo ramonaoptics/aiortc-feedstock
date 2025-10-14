@@ -7,8 +7,6 @@ package:
 source:
   url: https://pypi.org/packages/source/a/aiortc/aiortc-{{ version }}.tar.gz
   sha256: adc8a67ace10a085721e588e06a00358ed8eaf5f6b62f0a95358ff45628dd762
-  patches:
-    - loosen_av_pin.patch
 
 build:
   noarch: python
@@ -23,7 +21,7 @@ requirements:
   run:
     - python >={{ python_min }}
     - aioice >=0.10.1
-    - av >=14.0.0
+    - av >=14.0.0,<17.0.0a0
     - cffi >=1.0.0
     - cryptography >=44.0.0
     - google-crc32c >=1.1
