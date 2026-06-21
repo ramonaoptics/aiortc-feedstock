@@ -7,11 +7,18 @@ package:
 source:
   url: https://pypi.org/packages/source/a/aiortc/aiortc-{{ version }}.tar.gz
   sha256: ee6c0757ca070cf6d6bee441936d6ede24eef51211bbff6653409c540f72e625
+  patches:
+    - 0001-Increase-jitter-buffer-capacity.patch
+    - 0002-Ignore-exceptions-in-rtcsctptransport-for-closed-ses.patch
+    - 0003-Disable-automatic-bandwidth-adjustment-and-expose-en.patch
+    - 0004-Customize-h264-properties-and-create-h265-skeleton.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  number: 0
+  string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  # Use a high build number (starting at 100) to indicate ramona optics changes
+  number: 101
 
 requirements:
   host:
@@ -21,7 +28,7 @@ requirements:
   run:
     - python >={{ python_min }}
     - aioice >=0.10.1
-    - av >=14.0.0,<17.0.0a0
+    - av >=14.0.0
     - cffi >=1.0.0
     - cryptography >=44.0.0
     - google-crc32c >=1.1

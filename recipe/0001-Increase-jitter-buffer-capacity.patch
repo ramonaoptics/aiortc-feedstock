@@ -1,0 +1,25 @@
+From 3a554dde384d61665b7255b211a01d88136e93a1 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Tue, 9 Dec 2025 08:15:03 -0500
+Subject: [PATCH 1/4] Increase jitter buffer capacity
+
+---
+ src/aiortc/rtcrtpreceiver.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/aiortc/rtcrtpreceiver.py b/src/aiortc/rtcrtpreceiver.py
+index 9c31f9c..2fafd6f 100644
+--- a/src/aiortc/rtcrtpreceiver.py
++++ b/src/aiortc/rtcrtpreceiver.py
+@@ -277,7 +277,7 @@ class RTCRtpReceiver:
+             self.__nack_generator = None
+             self.__remote_bitrate_estimator = None
+         else:
+-            self.__jitter_buffer = JitterBuffer(capacity=128, is_video=True)
++            self.__jitter_buffer = JitterBuffer(capacity=1024, is_video=True)
+             self.__nack_generator = NackGenerator()
+             self.__remote_bitrate_estimator = RemoteBitrateEstimator()
+         self._track: Optional[RemoteStreamTrack] = None
+-- 
+2.51.0
+
