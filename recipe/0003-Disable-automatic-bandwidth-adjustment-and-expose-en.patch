@@ -1,7 +1,7 @@
 From d0886393304c25d3e4b608e3b914ff6f30e2bf3d Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Tue, 9 Dec 2025 08:15:59 -0500
-Subject: [PATCH 3/4] Disable automatic bandwidth adjustment and expose encoder
+Subject: [PATCH 3/5] Disable automatic bandwidth adjustment and expose encoder
  as property
 
 ---
@@ -35,5 +35,5 @@ index 475547e..102865e 100644
                  pass
  
 -- 
-2.51.0
+2.54.0
 

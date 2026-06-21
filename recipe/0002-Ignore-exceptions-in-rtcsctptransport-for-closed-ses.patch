@@ -1,7 +1,7 @@
 From fd4b11b529160a494a3961028b7ab58752648bb2 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Tue, 9 Dec 2025 08:15:37 -0500
-Subject: [PATCH 2/4] Ignore exceptions in rtcsctptransport for closed sessions
+Subject: [PATCH 2/5] Ignore exceptions in rtcsctptransport for closed sessions
 
 ---
  src/aiortc/rtcsctptransport.py | 17 ++++++++++++++++-
@@ -36,5 +36,5 @@ index 8889179..e5dce6c 100644
                  # remove any queued messages for the datachannel
                  new_queue: DataChannelQueue = deque()
 -- 
-2.51.0
+2.54.0
 

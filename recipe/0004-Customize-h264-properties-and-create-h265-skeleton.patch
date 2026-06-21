@@ -1,7 +1,7 @@
 From 4b9b0f2a19c205953e0d230fb0a2aa602b4d1dad Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Tue, 9 Dec 2025 08:16:21 -0500
-Subject: [PATCH 4/4] Customize h264 properties and create h265 skeleton
+Subject: [PATCH 4/5] Customize h264 properties and create h265 skeleton
 
 ---
  src/aiortc/codecs/__init__.py             |  28 ++
@@ -1043,5 +1043,5 @@ index 15c9f86..90d8cf1 100644
  
  
 -- 
-2.51.0
+2.54.0
 
