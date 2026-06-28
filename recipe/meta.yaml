@@ -12,14 +12,17 @@ source:
     - 0002-Ignore-exceptions-in-rtcsctptransport-for-closed-ses.patch
     - 0003-Disable-automatic-bandwidth-adjustment-and-expose-en.patch
     - 0004-Customize-h264-properties-and-create-h265-skeleton.patch
-    - 0005-Cap-ICE-reflexive-relay-gather-timeout-avoid-5s-stal.patch
+    - 0005-Probe-encoder-availability-through-PyAV.patch
+    - 0006-Cap-ICE-reflexive-relay-gather-timeout-avoid-5s-stal.patch
+    - 0007-Enable-apple-videotoolbox.patch
+    - 0008-Remove-upper-bound-pin-on-av-dependency.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 102
+  number: 103
 
 requirements:
   host:

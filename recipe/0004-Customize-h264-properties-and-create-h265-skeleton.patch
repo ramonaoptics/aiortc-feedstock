@@ -1,17 +1,8 @@
-From 4b9b0f2a19c205953e0d230fb0a2aa602b4d1dad Mon Sep 17 00:00:00 2001
+From 22c41469e5f4e4300e2aa718e898e0ed0b5364de Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Tue, 9 Dec 2025 08:16:21 -0500
-Subject: [PATCH 4/5] Customize h264 properties and create h265 skeleton
+Subject: [PATCH 1/5] Customize h264 properties and create h265 skeleton
 
----
- src/aiortc/codecs/__init__.py             |  28 ++
- src/aiortc/codecs/_ffmpeg_test_encoder.py |  54 ++
- src/aiortc/codecs/h264.py                 | 227 ++++++++-
- src/aiortc/codecs/hevc.py                 | 569 ++++++++++++++++++++++
- src/aiortc/rtcpeerconnection.py           |  39 ++
- 5 files changed, 897 insertions(+), 20 deletions(-)
- create mode 100644 src/aiortc/codecs/_ffmpeg_test_encoder.py
- create mode 100644 src/aiortc/codecs/hevc.py
 
 diff --git a/src/aiortc/codecs/__init__.py b/src/aiortc/codecs/__init__.py
 index 5bebe60..890062c 100644
@@ -82,10 +73,10 @@ index 5bebe60..890062c 100644
      elif mimeType == "video/vp8":
 diff --git a/src/aiortc/codecs/_ffmpeg_test_encoder.py b/src/aiortc/codecs/_ffmpeg_test_encoder.py
 new file mode 100644
-index 0000000..892986a
+index 0000000..4b4e452
 --- /dev/null
 +++ b/src/aiortc/codecs/_ffmpeg_test_encoder.py
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,53 @@
 +# Since starting up ffmpeg can be time consuming, we use lru_cache
 +# to remember the results of the tests.
 +# If shape is provided as a tuple, it is something
@@ -132,7 +123,6 @@ index 0000000..892986a
 +        "-f", "null",
 +        "-",
 +    ]
-+    print(cmd)
 +    p = subprocess.run(
 +        cmd,
 +        stdin=subprocess.PIPE,

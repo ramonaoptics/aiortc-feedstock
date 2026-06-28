@@ -1,0 +1,34 @@
+From 9d6c21273989e584290af1d9b7dc65c6a63717c7 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 28 Jun 2026 15:11:39 -0400
+Subject: [PATCH 5/5] Remove upper bound pin on av dependency
+
+<details><summary>Claude's draft</summary>
+
+Drop the `<17.0.0` upper bound on the `av` dependency in pyproject.toml,
+leaving only the `>=14.0.0` lower bound. This allows installing newer
+PyAV releases without a packaging constraint.
+
+Resume this Claude session:
+```
+cd /Users/mark/git/aiortc-qsv
+claude --resume 3a69e574-7baa-4835-898e-ebecf85bf921
+```
+</details>
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 424250d..6a42867 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -26,7 +26,7 @@ classifiers = [
+ ]
+ dependencies = [
+     "aioice>=0.10.1,<1.0.0",
+-    "av>=14.0.0,<17.0.0",
++    "av>=14.0.0",
+     "cryptography>=44.0.0",
+     "google-crc32c>=1.1",
+     "pyee>=13.0.0",
+-- 
+2.54.0
+
