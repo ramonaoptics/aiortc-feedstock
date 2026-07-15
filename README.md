@@ -1,7 +1,7 @@
 About aiortc-feedstock
 ======================
 
-Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/aiortc-feedstock/blob/main/LICENSE.txt)
+Feedstock license: [BSD-3-Clause](https://github.com/ramonaoptics/aiortc-feedstock/blob/main/LICENSE.txt)
 
 Home: https://github.com/aiortc/aiortc
 
@@ -16,8 +16,8 @@ Current build status
 <table><tr>
     <td>All platforms:</td>
     <td>
-      <a href="https://github.com/conda-forge/aiortc-feedstock/actions/workflows/conda-build.yml">
-        <img src="https://github.com/conda-forge/aiortc-feedstock/actions/workflows/conda-build.yml/badge.svg?event=push&branch=main">
+      <a href="https://github.com/ramonaoptics/aiortc-feedstock/actions/workflows/conda-build.yml">
+        <img src="https://github.com/ramonaoptics/aiortc-feedstock/actions/workflows/conda-build.yml/badge.svg?event=push&branch=main">
       </a>
     </td>
   </tr>
@@ -129,7 +129,7 @@ opportunity to confirm that the changes result in a successful build. Once
 merged, the recipe will be re-built and uploaded automatically to the
 `conda-forge` channel, whereupon the built conda packages will be available for
 everybody to install and use from the `conda-forge` channel.
-Note that all branches in the conda-forge/aiortc-feedstock are
+Note that all branches in the ramonaoptics/aiortc-feedstock are
 immediately built and any created packages are uploaded, so PRs should be based
 on branches in forks, and branches in the main repository should only be used to
 build distinct package versions.
