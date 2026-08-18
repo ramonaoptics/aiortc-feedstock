@@ -1,7 +1,7 @@
 From c9200d2e951093409fac9b96ee3cde2b90aeee03 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Sun, 28 Jun 2026 15:05:31 -0400
-Subject: [PATCH 4/5] Enable apple  videotoolbox
+Subject: [PATCH 4/6] Enable apple  videotoolbox
 
 ---
  src/aiortc/codecs/h264.py | 37 +++++++++++++++++++++++++++++++++-
@@ -145,5 +145,5 @@ index 9cb250b..30f1661 100644
                  print(f"[HEVC DEBUG] ERROR setting up encoder: {e}")
                  raise e
 -- 
-2.54.0
+2.55.0
 

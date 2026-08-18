@@ -13,13 +13,14 @@ source:
     - 0003-Cap-ICE-reflexive-relay-gather-timeout-avoid-5s-stal.patch
     - 0004-Enable-apple-videotoolbox.patch
     - 0005-Remove-upper-bound-pin-on-av-dependency.patch
+    - 0006-Carry-a-frame-s-declared-colour-onto-the-encoder-con.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 100
+  number: 101
 
 requirements:
   host:

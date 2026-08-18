@@ -1,0 +1,135 @@
+From 9b0d93d6fcb5f434030cb9680310ae8f97b4faea Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Tue, 18 Aug 2026 18:24:59 -0400
+Subject: [PATCH 6/6] Carry a frame's declared colour onto the encoder context
+
+A VideoFrame can declare its matrix, range, primaries and transfer, but nothing
+was done with them. An encoder writes its colour signalling from the codec
+context, not from the frame, and the context was created without any -- so a
+sender filling these in was ignored and the stream went out saying nothing.
+
+An empty VUI is not neutral. A decoder that reads one supplies its own answer:
+limited range, BT.709 at HD, and a video transfer curve. Content that was none
+of those -- full-range sRGB read off a GPU canvas, say -- is then altered in
+every pixel, and the sender has no way to object. Measured with
+h264_videotoolbox and libopenh264: a frame flagged full range encodes to a
+stream that decodes back as "unspecified", while the same flag set on the
+context decodes as full.
+
+Copy the four fields across when the context is built, skipping any the frame
+left unspecified, so a caller that sets none of them keeps exactly what the
+encoder would have chosen. Shared from codecs/base.py by H.264 and HEVC, both
+verified round tripping all four.
+
+VP8 is deliberately left alone. Its bitstream holds one colour-space bit
+meaning BT.601 and a clamping bit, with nowhere to put a matrix, primaries or a
+transfer curve; encoded and decoded back it returns BT.601 limited whatever it
+was given. A sender that needs its colour understood has to encode BT.601
+limited when VP8 is what got negotiated, and no change here can help it.
+---
+ src/aiortc/codecs/base.py | 42 +++++++++++++++++++++++++++++++++++++++
+ src/aiortc/codecs/h264.py |  3 ++-
+ src/aiortc/codecs/hevc.py |  3 ++-
+ 3 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/src/aiortc/codecs/base.py b/src/aiortc/codecs/base.py
+index 8960f27..2c36e73 100644
+--- a/src/aiortc/codecs/base.py
++++ b/src/aiortc/codecs/base.py
+@@ -2,9 +2,51 @@ from abc import ABCMeta, abstractmethod
+ 
+ from av.frame import Frame
+ from av.packet import Packet
++from av.video.codeccontext import VideoCodecContext
++from av.video.frame import VideoFrame
+ 
+ from ..jitterbuffer import JitterFrame
+ 
++# FFmpeg spells "unspecified" as 2 for a matrix, primaries or transfer, and 0
++# for a range.
++AVCOL_SPC_UNSPECIFIED = 2
++AVCOL_PRI_UNSPECIFIED = 2
++AVCOL_TRC_UNSPECIFIED = 2
++AVCOL_RANGE_UNSPECIFIED = 0
++
++
++def apply_frame_color_properties(
++    codec: VideoCodecContext, frame: VideoFrame
++) -> None:
++    """Carry a frame's declared colour onto the context that will encode it.
++
++    An encoder writes its colour signalling from the context, not from the
++    frame, so a sender that fills these in on the frame alone is ignored: the
++    stream then says nothing, and a decoder reading nothing supplies its own
++    answer -- limited range, BT.709 at HD, and a video transfer curve. Content
++    that was none of those, such as full-range sRGB read off a GPU canvas, is
++    then altered in every pixel.
++
++    Only fields the frame actually specifies are copied, so a caller that sets
++    none of them keeps whatever the encoder would have chosen.
++
++    Used by the H.264 and HEVC encoders, which is where it works: encoded and
++    decoded back, both keep all four fields. VP8 deliberately does not call it,
++    because it cannot honour it -- its bitstream holds one colour-space bit
++    meaning BT.601 and a clamping bit, with nowhere to put a matrix, primaries
++    or a transfer curve, and the same round trip comes back BT.601 limited
++    whatever it was given. A sender that needs its colour understood has to
++    encode BT.601 limited when VP8 is what got negotiated.
++    """
++    if frame.colorspace != AVCOL_SPC_UNSPECIFIED:
++        codec.colorspace = frame.colorspace
++    if frame.color_range != AVCOL_RANGE_UNSPECIFIED:
++        codec.color_range = frame.color_range
++    if frame.color_primaries != AVCOL_PRI_UNSPECIFIED:
++        codec.color_primaries = frame.color_primaries
++    if frame.color_trc != AVCOL_TRC_UNSPECIFIED:
++        codec.color_trc = frame.color_trc
++
+ 
+ class Decoder(metaclass=ABCMeta):
+     @abstractmethod
+diff --git a/src/aiortc/codecs/h264.py b/src/aiortc/codecs/h264.py
+index 527e095..614a2cc 100644
+--- a/src/aiortc/codecs/h264.py
++++ b/src/aiortc/codecs/h264.py
+@@ -14,7 +14,7 @@ from av.video.codeccontext import VideoCodecContext
+ 
+ from ..jitterbuffer import JitterFrame
+ from ..mediastreams import VIDEO_TIME_BASE, convert_timebase
+-from .base import Decoder, Encoder
++from .base import Decoder, Encoder, apply_frame_color_properties
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -433,6 +433,7 @@ class H264Encoder(Encoder):
+                 self.codec.framerate = fractions.Fraction(MAX_FRAME_RATE, 1)
+                 self.codec.time_base = fractions.Fraction(1, MAX_FRAME_RATE)
+                 self.codec.options = self.codec_options
++                apply_frame_color_properties(self.codec, frame)
+                 # codec_profile may be None (e.g. VideoToolbox); skip the
+                 # assignment so the encoder chooses the profile itself.
+                 if self.codec_profile is not None:
+diff --git a/src/aiortc/codecs/hevc.py b/src/aiortc/codecs/hevc.py
+index 30f1661..f646731 100644
+--- a/src/aiortc/codecs/hevc.py
++++ b/src/aiortc/codecs/hevc.py
+@@ -14,7 +14,7 @@ from av.video.codeccontext import VideoCodecContext
+ 
+ from ..jitterbuffer import JitterFrame
+ from ..mediastreams import VIDEO_TIME_BASE, convert_timebase
+-from .base import Decoder, Encoder
++from .base import Decoder, Encoder, apply_frame_color_properties
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -501,6 +501,7 @@ class HEVCEncoder(Encoder):
+                 self.codec.framerate = fractions.Fraction(MAX_FRAME_RATE, 1)
+                 self.codec.time_base = fractions.Fraction(1, MAX_FRAME_RATE)
+                 self.codec.options = self.codec_options
++                apply_frame_color_properties(self.codec, frame)
+                 # codec_profile may be None (e.g. VideoToolbox); skip the
+                 # assignment so the encoder chooses the profile itself.
+                 if self.codec_profile is not None:
+-- 
+2.55.0
+

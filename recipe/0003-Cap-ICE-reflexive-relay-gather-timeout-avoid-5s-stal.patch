@@ -1,7 +1,7 @@
 From 5221e5f2c6beefb0d415240b8d15f746e5727221 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Sat, 20 Jun 2026 22:28:02 -0400
-Subject: [PATCH 3/5] Cap ICE reflexive/relay gather timeout (avoid 5s stall)
+Subject: [PATCH 3/6] Cap ICE reflexive/relay gather timeout (avoid 5s stall)
 
 aioice gathers srflx/relay candidates from every local interface and waits
 ALL_COMPLETED up to a hardcoded 5s. An interface that can't reach the
@@ -70,5 +70,5 @@ index 45c6c3c..ed176e6 100644
              local_username=local_username,
              local_password=local_password,
 -- 
-2.54.0
+2.55.0
 
