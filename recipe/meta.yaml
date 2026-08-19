@@ -20,7 +20,7 @@ build:
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 101
+  number: 102
 
 requirements:
   host:

@@ -1,7 +1,7 @@
 From 499a5716ce6e4bd5ae6e5b561ce9dca9ad0d62af Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Sun, 28 Jun 2026 15:19:48 -0400
-Subject: [PATCH 2/6] Probe encoder availability through PyAV instead of the
+Subject: [PATCH 2/7] Probe encoder availability through PyAV instead of the
  ffmpeg binary
 
 <details><summary>Claude's draft</summary>

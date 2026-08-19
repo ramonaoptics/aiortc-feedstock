@@ -1,7 +1,7 @@
 From 2d08cedc3cd09274122ed6e0b1a5181db9362109 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Sun, 28 Jun 2026 15:11:39 -0400
-Subject: [PATCH 5/6] Remove upper bound pin on av dependency
+Subject: [PATCH 5/7] Remove upper bound pin on av dependency
 
 <details><summary>Claude's draft</summary>
 

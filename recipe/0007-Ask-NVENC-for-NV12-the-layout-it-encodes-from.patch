@@ -1,0 +1,104 @@
+From 3bfc181afc69a3b469f0c3bf5fa8bdcb2fe4a36e Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Tue, 18 Aug 2026 22:39:11 -0400
+Subject: [PATCH 7/7] Ask NVENC for NV12, the layout it encodes from
+
+<details><summary>Claude's draft</summary>
+
+NVENC's native input surface is NV12. yuv420p was accepted -- nvenc.c's
+nvenc_map_buffer_format maps AV_PIX_FMT_YUV420P to NV_ENC_BUFFER_FORMAT_YV12
+and plane-copies into the mapped surface, swapping U and V -- but the driver
+then converts YV12 to NV12 on the device before the encoder sees it.
+Requesting NV12 hands it the layout it was going to produce anyway.
+
+Applied to both h264_nvenc and hevc_nvenc: nvenc_hevc.c declares
+CODEC_PIXFMTS_ARRAY(ff_nvenc_pix_fmts), the same list h264 uses, so the
+argument is identical for the two.
+
+This also harmonises the encoder tables. h264_qsv and hevc_qsv already ask for
+NV12 and accept nothing else (qsvenc_h264.c:202). With QSV and NVENC both on
+NV12, a producer that can emit NV12 directly -- MCAM Studio's canvas now does,
+via the SIMD kernels in python-owl !10765 -- reaches either without PyAV
+reformatting the frame on the way in.
+
+Four encoders are deliberately left on yuv420p, for two different reasons.
+
+libopenh264 and libx265 cannot take NV12 at all: libopenh264enc.c:439 declares
+only YUV420P/YUVJ420P, and libx265.c has no AV_PIX_FMT_NV12 in any of its csp
+tables. NV12 there would introduce a swscale, not remove one. libx264 accepts
+NV12 but x264 is planar internally, so there is nothing to gain.
+
+VideoToolbox is the interesting one, and it does not need NV12 either.
+yuv420p is a first-class CVPixelBuffer format there, not something routed
+through NV12: hwcontext_videotoolbox.c's cv_pix_fmts maps AV_PIX_FMT_YUV420P
+to kCVPixelFormatType_420YpCbCr8Planar, and to ...PlanarFullRange when the
+frame declares full range. copy_avframe_to_pixel_buffer (videotoolboxenc.c:2333)
+then does a plane-for-plane av_image_copy2 into a buffer whose format was
+chosen to match the frame, and asserts the plane counts agree. Both formats
+are a direct copy; neither converts. So hevc_videotoolbox and
+h264_videotoolbox stay as they are.
+
+Measured on an RTX PRO 6000 Blackwell at 1920x1080, all four combinations of
+context and frame format land within noise (1.72-1.77 ms/frame), so this is
+not a measured speed-up on that card -- it is the encoder being handed what it
+asked for, and the precondition for the canvas emitting NV12 without a
+reformat. Verified that both hevc_nvenc and h264_nvenc encode an NV12 frame
+(808252 and 675856 bytes over 20 frames). The h264_qsv case, where the
+conversion is mandatory rather than internal, could not be measured here.
+
+Pre-existing unrelated failure in
+tests/test_h264.py::test_encoder_target_bitrate (the fork's per-encoder
+default bitrate vs upstream's assertion) is untouched; it fails identically
+without this change. There is no tests/test_hevc.py.
+
+Resume this Claude session:
+```
+cd /home/mark/git/ramona/python-owl
+claude --resume 66360ec9-8ab8-4ae1-8f3f-e873ce8fc563
+```
+</details>
+---
+ src/aiortc/codecs/h264.py | 9 ++++++++-
+ src/aiortc/codecs/hevc.py | 6 +++++-
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/src/aiortc/codecs/h264.py b/src/aiortc/codecs/h264.py
+index 614a2cc..1c6a02d 100644
+--- a/src/aiortc/codecs/h264.py
++++ b/src/aiortc/codecs/h264.py
+@@ -191,7 +191,14 @@ class H264Encoder(Encoder):
+             }
+         elif self.__encoder == "h264_nvenc":
+             av.logging.set_level(av.logging.VERBOSE)
+-            self.__pix_fmt = "yuv420p"
++            # NVENC's native input surface is NV12. A yuv420p frame is accepted
++            # -- nvenc.c maps it to NV_ENC_BUFFER_FORMAT_YV12 and plane-copies
++            # it into the mapped surface -- but the driver then converts YV12
++            # to NV12 on the device before the encoder sees it. Asking for NV12
++            # hands it the layout it wanted, and lets a producer that can emit
++            # NV12 directly (the studio canvas does) skip a swscale on the way
++            # in as well.
++            self.__pix_fmt = "nv12"
+             self.__codec_profile = "high"
+             if self.__target_bitrate is None:
+                 self.__target_bitrate = 5_000_000
+diff --git a/src/aiortc/codecs/hevc.py b/src/aiortc/codecs/hevc.py
+index f646731..68f4024 100644
+--- a/src/aiortc/codecs/hevc.py
++++ b/src/aiortc/codecs/hevc.py
+@@ -251,7 +251,11 @@ class HEVCEncoder(Encoder):
+                 'tier': tier,
+             }
+         elif self.__encoder == "hevc_nvenc":
+-            self.__pix_fmt = "yuv420p"
++            # NVENC's native input surface is NV12; see the h264_nvenc branch
++            # in h264.py for why. hevc_nvenc shares nvenc.c's format list
++            # (CODEC_PIXFMTS_ARRAY(ff_nvenc_pix_fmts) in nvenc_hevc.c), so the
++            # argument is identical.
++            self.__pix_fmt = "nv12"
+             if self.__target_bitrate is None:
+                 self.__target_bitrate = 3_000_000
+             self.__codec_options = {
+-- 
+2.55.0
+
