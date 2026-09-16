@@ -14,13 +14,15 @@ source:
     - 0004-Enable-apple-videotoolbox.patch
     - 0005-Remove-upper-bound-pin-on-av-dependency.patch
     - 0006-Carry-a-frame-s-declared-colour-onto-the-encoder-con.patch
+    - 0007-Ask-NVENC-for-NV12-the-layout-it-encodes-from.patch
+    - 0008-Improve-defaults-for-apple-video-encoder.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 102
+  number: 103
 
 requirements:
   host:
