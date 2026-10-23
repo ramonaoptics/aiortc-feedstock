@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jeremy=20Lain=C3=A9?= <jeremy.laine@m4x.org>
+Date: Mon, 12 Oct 2026 07:55:47 +0200
+Subject: [PATCH 06/21] Add a security policy
+
+Indicate private vulnerability reporting is the preferred channel.
+---
+ MANIFEST.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/MANIFEST.in b/MANIFEST.in
+index 764480b..7b77f70 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -1,6 +1,7 @@
+ exclude .readthedocs.yaml
+ include CODE_OF_CONDUCT.md
+ include LICENSE
++include SECURITY.md
+ recursive-include docs *.py *.rst *.svg Makefile
+ recursive-include examples *.html *.js *.py *.rst *.wav
+ recursive-include requirements *.txt

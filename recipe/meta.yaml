@@ -8,21 +8,34 @@ source:
   url: https://pypi.org/packages/source/a/aiortc/aiortc-{{ version }}.tar.gz
   sha256: ee6c0757ca070cf6d6bee441936d6ede24eef51211bbff6653409c540f72e625
   patches:
-    - 0001-Customize-h264-properties-and-create-h265-skeleton.patch
-    - 0002-Probe-encoder-availability-through-PyAV-instead-of-t.patch
-    - 0003-Cap-ICE-reflexive-relay-gather-timeout-avoid-5s-stal.patch
-    - 0004-Enable-apple-videotoolbox.patch
-    - 0005-Remove-upper-bound-pin-on-av-dependency.patch
-    - 0006-Carry-a-frame-s-declared-colour-onto-the-encoder-con.patch
-    - 0007-Ask-NVENC-for-NV12-the-layout-it-encodes-from.patch
-    - 0008-Improve-defaults-for-apple-video-encoder.patch
+    - 0001-Raise-the-video-jitter-buffer-capacity-to-512-packet.patch
+    - 0002-Support-Python-3.15-drop-Python-3.10.patch
+    - 0003-Always-use-two-byte-VP8-picture-ID.patch
+    - 0004-sctp-reduce-the-MTU-to-1189-bytes.patch
+    - 0005-Relax-PyAV-version-pinning.patch
+    - 0006-Add-a-security-policy.patch
+    - 0007-Remove-redundant-casts-in-G.722-codec.patch
+    - 0008-sctp-initiate-the-association-from-both-endpoints.patch
+    - 0009-Disable-TLS-session-tickets-for-DTLS.patch
+    - 0010-Derive-SCTP-role-and-stream-ID-parity-from-the-DTLS-.patch
+    - 0011-Name-the-official-sources-in-the-README.patch
+    - 0012-sctp-bump-max-message-size-to-256k.patch
+    - 0013-Customize-h264-properties-and-create-h265-skeleton.patch
+    - 0014-Probe-encoder-availability-through-PyAV-instead-of-t.patch
+    - 0015-Cap-ICE-reflexive-relay-gather-timeout-avoid-5s-stal.patch
+    - 0016-Enable-apple-videotoolbox.patch
+    - 0017-Remove-upper-bound-pin-on-av-dependency.patch
+    - 0018-Carry-a-frame-s-declared-colour-onto-the-encoder-con.patch
+    - 0019-Ask-NVENC-for-NV12-the-layout-it-encodes-from.patch
+    - 0020-Improve-defaults-for-apple-video-encoder.patch
+    - 0021-Return-from-ICE-gathering-once-the-useful-candidates.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 103
+  number: 104
 
 requirements:
   host:
@@ -31,7 +44,7 @@ requirements:
     - pip
   run:
     - python >={{ python_min }}
-    - aioice >=0.10.1
+    - aioice >=0.10.2,<1.0.0
     - av >=14.0.0
     - cffi >=1.0.0
     - cryptography >=44.0.0

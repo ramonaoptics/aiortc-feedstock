@@ -1,0 +1,169 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Philipp Hancke <philipp.hancke@googlemail.com>
+Date: Mon, 12 Oct 2026 10:23:07 +0200
+Subject: [PATCH 08/21] sctp: initiate the association from both endpoints
+
+Both endpoints send an INIT and answer an INIT or COOKIE ECHO in any
+state, so the association no longer depends on both sides agreeing who
+initiates. See RFC 8841 section 9.3 and RFC 9260 section 5.2.1:
+  https://www.rfc-editor.org/rfc/rfc8841#section-9.3
+  https://www.rfc-editor.org/rfc/rfc9260#section-5.2.1
+---
+ src/aiortc/rtcsctptransport.py | 12 +++----
+ tests/test_rtcsctptransport.py | 59 ++++++++++++++++++++++++++++++++--
+ 2 files changed, 62 insertions(+), 9 deletions(-)
+
+diff --git a/src/aiortc/rtcsctptransport.py b/src/aiortc/rtcsctptransport.py
+index eba20c3..6dea387 100644
+--- a/src/aiortc/rtcsctptransport.py
++++ b/src/aiortc/rtcsctptransport.py
+@@ -779,9 +779,9 @@ class RTCSctpTransport(AsyncIOEventEmitter):
+             else:
+                 self._data_channel_id = 1
+ 
++            # both endpoints initiate the association, see RFC 8841 section 9.3
+             self.__transport._register_data_receiver(self)
+-            if not self.is_server:
+-                await self._init()
++            await self._init()
+ 
+     async def stop(self) -> None:
+         """
+@@ -996,8 +996,8 @@ class RTCSctpTransport(AsyncIOEventEmitter):
+                 if cls is not None:
+                     await self._receive_reconfig_param(cls.parse(param[1]))
+ 
+-        # server
+-        elif isinstance(chunk, InitChunk) and self.is_server:
++        # an INIT may collide with our own, see RFC 9260 section 5.2.1
++        elif isinstance(chunk, InitChunk):
+             self._last_received_tsn = tsn_minus_one(chunk.initial_tsn)
+             self._reconfig_response_seq = tsn_minus_one(chunk.initial_tsn)
+             self._remote_verification_tag = chunk.initiate_tag
+@@ -1029,7 +1029,7 @@ class RTCSctpTransport(AsyncIOEventEmitter):
+             cookie += hmac.new(self._hmac_key, cookie, "sha1").digest()
+             init_ack.params.append((SCTP_STATE_COOKIE, cookie))
+             await self._send_chunk(init_ack)
+-        elif isinstance(chunk, CookieEchoChunk) and self.is_server:
++        elif isinstance(chunk, CookieEchoChunk):
+             # check state cookie MAC
+             cookie = chunk.body
+             if (
+@@ -1049,11 +1049,11 @@ class RTCSctpTransport(AsyncIOEventEmitter):
+                 await self._send_chunk(error)
+                 return
+ 
++            self._t1_cancel()
+             cookie_ack = CookieAckChunk()
+             await self._send_chunk(cookie_ack)
+             self._set_state(self.State.ESTABLISHED)
+ 
+-        # client
+         elif (
+             isinstance(chunk, InitAckChunk)
+             and self._association_state == self.State.COOKIE_WAIT
+diff --git a/tests/test_rtcsctptransport.py b/tests/test_rtcsctptransport.py
+index f09acd6..34841ca 100644
+--- a/tests/test_rtcsctptransport.py
++++ b/tests/test_rtcsctptransport.py
+@@ -83,6 +83,10 @@ async def client_standalone() -> AsyncGenerator[RTCSctpTransport, None]:
+             await client.stop()
+ 
+ 
++async def noop_init() -> None:
++    pass
++
++
+ async def noop_send_chunk(chunk: Chunk) -> None:
+     pass
+ 
+@@ -709,7 +713,50 @@ class RTCSctpTransportTest(TestCase):
+             self.assertEqual(client._association_state, RTCSctpTransport.State.CLOSED)
+             self.assertEqual(client.state, "closed")
+             self.assertEqual(server._association_state, RTCSctpTransport.State.CLOSED)
+-            self.assertEqual(server.state, "connecting")
++            self.assertEqual(server.state, "closed")
++
++    @asynctest
++    async def test_connect_one_side_initiates(self) -> None:
++        for initiator in ["client", "server"]:
++            async with client_and_server() as (client, server):
++                if initiator == "client":
++                    server._init = noop_init  # type: ignore
++                else:
++                    client._init = noop_init  # type: ignore
++
++                await server.start(client.getCapabilities(), client.port)
++                await client.start(server.getCapabilities(), server.port)
++
++                await wait_for_outcome(client, server)
++                self.assertEqual(
++                    client._association_state, RTCSctpTransport.State.ESTABLISHED
++                )
++                self.assertEqual(
++                    server._association_state, RTCSctpTransport.State.ESTABLISHED
++                )
++
++    @asynctest
++    async def test_connect_peer_ignores_init(self) -> None:
++        async with client_and_server() as (client, server):
++            real_receive_chunk = client._receive_chunk
++
++            async def mock_receive_chunk(chunk: Chunk) -> None:
++                if not isinstance(chunk, InitChunk):
++                    await real_receive_chunk(chunk)
++
++            client._receive_chunk = mock_receive_chunk  # type: ignore
++
++            await server.start(client.getCapabilities(), client.port)
++            await client.start(server.getCapabilities(), server.port)
++
++            await wait_for_outcome(client, server)
++            self.assertEqual(
++                client._association_state, RTCSctpTransport.State.ESTABLISHED
++            )
++            self.assertEqual(
++                server._association_state, RTCSctpTransport.State.ESTABLISHED
++            )
++            self.assertIsNone(server._t1_handle)
+ 
+     @asynctest
+     async def test_connect_lossy_transport(self) -> None:
+@@ -1323,7 +1370,9 @@ class RTCSctpTransportTest(TestCase):
+ 
+             # check outcome
+             await asyncio.sleep(0.1)
+-            self.assertEqual(server._association_state, RTCSctpTransport.State.CLOSED)
++            self.assertEqual(
++                server._association_state, RTCSctpTransport.State.COOKIE_WAIT
++            )
+ 
+     @asynctest
+     async def test_bad_verification_tag(self) -> None:
+@@ -1336,7 +1385,9 @@ class RTCSctpTransportTest(TestCase):
+ 
+             # check outcome
+             await asyncio.sleep(0.1)
+-            self.assertEqual(server._association_state, RTCSctpTransport.State.CLOSED)
++            self.assertEqual(
++                server._association_state, RTCSctpTransport.State.COOKIE_WAIT
++            )
+ 
+     @asynctest
+     async def test_bad_cookie(self) -> None:
+@@ -1350,6 +1401,7 @@ class RTCSctpTransportTest(TestCase):
+                 return await real_send_chunk(chunk)
+ 
+             client._send_chunk = mock_send_chunk  # type: ignore
++            server._init = noop_init  # type: ignore
+ 
+             await server.start(client.getCapabilities(), client.port)
+             await client.start(server.getCapabilities(), server.port)
+@@ -1434,6 +1486,7 @@ class RTCSctpTransportTest(TestCase):
+ 
+         async with client_and_server() as (client, server):
+             server._get_timestamp = mock_timestamp  # type: ignore
++            server._init = noop_init  # type: ignore
+             await server.start(client.getCapabilities(), client.port)
+             await client.start(server.getCapabilities(), server.port)
+ 

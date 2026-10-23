@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mark Backman <mark@daily.co>
+Date: Mon, 5 Oct 2026 13:38:22 -0400
+Subject: [PATCH 01/21] Raise the video jitter buffer capacity to 512 packets
+
+---
+ src/aiortc/rtcrtpreceiver.py | 2 +-
+ tests/test_rtcrtpreceiver.py | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/aiortc/rtcrtpreceiver.py b/src/aiortc/rtcrtpreceiver.py
+index 9c31f9c..9f7a804 100644
+--- a/src/aiortc/rtcrtpreceiver.py
++++ b/src/aiortc/rtcrtpreceiver.py
+@@ -277,7 +277,7 @@ class RTCRtpReceiver:
+             self.__nack_generator = None
+             self.__remote_bitrate_estimator = None
+         else:
+-            self.__jitter_buffer = JitterBuffer(capacity=128, is_video=True)
++            self.__jitter_buffer = JitterBuffer(capacity=512, is_video=True)
+             self.__nack_generator = NackGenerator()
+             self.__remote_bitrate_estimator = RemoteBitrateEstimator()
+         self._track: Optional[RemoteStreamTrack] = None
+diff --git a/tests/test_rtcrtpreceiver.py b/tests/test_rtcrtpreceiver.py
+index e31aee0..0d3d095 100644
+--- a/tests/test_rtcrtpreceiver.py
++++ b/tests/test_rtcrtpreceiver.py
+@@ -410,14 +410,14 @@ class RTCRtpReceiverTest(CodecTestCase):
+             await receiver.receive(RTCRtpReceiveParameters(codecs=[VP8_CODEC]))
+ 
+             # generate some packets
+-            packets = create_rtp_video_packets(self, codec=VP8_CODEC, frames=129)
++            packets = create_rtp_video_packets(self, codec=VP8_CODEC, frames=513)
+ 
+             # receive RTP with a with a gap
+             await receiver._handle_rtp_packet(packets[0], arrival_time_ms=0)
+-            await receiver._handle_rtp_packet(packets[128], arrival_time_ms=0)
++            await receiver._handle_rtp_packet(packets[512], arrival_time_ms=0)
+ 
+             # check NACK was triggered
+-            lost_packets = list(range(1, 128))
++            lost_packets = list(range(384, 512))
+             self.assertEqual(nacks[0], (1234, lost_packets))
+ 
+             # check PLI was triggered

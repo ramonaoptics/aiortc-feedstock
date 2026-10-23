@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jeremy=20Lain=C3=A9?= <jeremy.laine@m4x.org>
+Date: Mon, 12 Oct 2026 08:00:42 +0200
+Subject: [PATCH 02/21] Support Python 3.15, drop Python 3.10
+
+Python 3.10 has reached end-of-life, it's time to move on.
+---
+ pyproject.toml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 9da388d..6f4ab96 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
+ name = "aiortc"
+ description = "An implementation of WebRTC and ORTC"
+ readme = "README.rst"
+-requires-python = ">=3.10"
++requires-python = ">=3.11"
+ license = "BSD-3-Clause"
+ authors = [
+     { name = "Jeremy Lainé", email = "jeremy.laine@m4x.org" },
+@@ -18,11 +18,11 @@ classifiers = [
+     "Operating System :: OS Independent",
+     "Programming Language :: Python",
+     "Programming Language :: Python :: 3",
+-    "Programming Language :: Python :: 3.10",
+     "Programming Language :: Python :: 3.11",
+     "Programming Language :: Python :: 3.12",
+     "Programming Language :: Python :: 3.13",
+     "Programming Language :: Python :: 3.14",
++    "Programming Language :: Python :: 3.15",
+ ]
+ dependencies = [
+     "aioice>=0.10.2,<1.0.0",

@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Philipp Hancke <philipp.hancke@googlemail.com>
+Date: Mon, 12 Oct 2026 10:32:54 +0200
+Subject: [PATCH 07/21] Remove redundant casts in G.722 codec
+
+PyAV 18 types CodecContext.create("g722") as AudioCodecContext.
+
+f'up to #1447
+---
+ src/aiortc/codecs/g722.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/aiortc/codecs/g722.py b/src/aiortc/codecs/g722.py
+index 36b6691..e7e77ee 100644
+--- a/src/aiortc/codecs/g722.py
++++ b/src/aiortc/codecs/g722.py
+@@ -1,7 +1,7 @@
+ import fractions
+ from typing import Optional, cast
+ 
+-from av import AudioCodecContext, AudioFrame, AudioResampler, CodecContext
++from av import AudioFrame, AudioResampler, CodecContext
+ from av.frame import Frame
+ from av.packet import Packet
+ 
+@@ -21,7 +21,7 @@ CLOCK_BASE = fractions.Fraction(1, 8000)
+ 
+ class G722Decoder(Decoder):
+     def __init__(self) -> None:
+-        self.codec = cast(AudioCodecContext, CodecContext.create("g722", "r"))
++        self.codec = CodecContext.create("g722", "r")
+         self.codec.format = "s16"
+         self.codec.layout = "mono"
+         self.codec.sample_rate = SAMPLE_RATE
+@@ -35,7 +35,7 @@ class G722Decoder(Decoder):
+ 
+ class G722Encoder(Encoder):
+     def __init__(self) -> None:
+-        self.codec = cast(AudioCodecContext, CodecContext.create("g722", "w"))
++        self.codec = CodecContext.create("g722", "w")
+         self.codec.format = "s16"
+         self.codec.layout = "mono"
+         self.codec.sample_rate = SAMPLE_RATE
