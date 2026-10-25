@@ -29,13 +29,14 @@ source:
     - 0019-Ask-NVENC-for-NV12-the-layout-it-encodes-from.patch
     - 0020-Improve-defaults-for-apple-video-encoder.patch
     - 0021-Return-from-ICE-gathering-once-the-useful-candidates.patch
+    - 0022-Return-VideoToolbox-packets-on-the-call-that-sends-t.patch
 
 build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   string: ramona_pyh{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   # Use a high build number (starting at 100) to indicate ramona optics changes
-  number: 104
+  number: 105
 
 requirements:
   host:

@@ -1,0 +1,133 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 25 Oct 2026 14:04:34 -0400
+Subject: [PATCH] Return VideoToolbox packets on the call that sends their
+ frame
+
+<details><summary>Claude's draft</summary>
+
+Performance improvements for the VideoToolbox encoders, h264 and hevc.
+
+Both now set flags=+low_delay, which turns on VideoToolbox's low-latency
+rate control, and request NV12, the layout VideoToolbox encodes from.
+Before this, each packet came back from the encode() call after the one
+that sent its frame, one frame (33 ms at 30 fps) late.
+
+With yuv420p input, low_delay is on time only with an FFmpeg whose
+videotoolboxenc.c waits for the encoded frame in low_delay mode (stock
+9.0.2 does not). NV12 with low_delay is on time on stock FFmpeg too.
+
+hevc drops constant_bit_rate=1: low-latency mode is a rate control of its
+own, and hevc_videotoolbox fails to open with both set.
+
+Verified on Apple Silicon, 1280x720, one frame every 33 ms, 60 frames:
+- On an FFmpeg 9.0.2 with that patch, both encoders returned a packet on
+  every call; before, the first call returned none and each later packet
+  came one call late.
+- On stock conda-forge FFmpeg 9.0.2, tests/test_h264.py went from 9
+  failures to 2. The 7 now passing expect a packet for every frame. The 2
+  remaining also failed before: the default target bitrate, and the
+  fragment count in test_encoder_large.
+- ruff reports the same 11 errors in these files as before.
+
+Resume this Claude session:
+```
+cd /Users/mark/git/ramona/python-owl
+claude --resume 348e978e-7214-4dbf-b4bc-ccbd13f6008c
+```
+</details>
+
+Claude-Session: https://claude.ai/code/session_0133SByLMBQExNaeCdKAwaNC
+---
+ src/aiortc/codecs/h264.py | 20 +++++++++++++++-----
+ src/aiortc/codecs/hevc.py | 16 ++++++++++------
+ 2 files changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/src/aiortc/codecs/h264.py b/src/aiortc/codecs/h264.py
+index 1c5d7f8..b2e58fa 100644
+--- a/src/aiortc/codecs/h264.py
++++ b/src/aiortc/codecs/h264.py
+@@ -267,10 +267,17 @@ class H264Encoder(Encoder):
+             #                      honour them.
+             # Dropped, having been measured: constant_bit_rate=1 (byte-identical
+             # to average-bitrate mode at the same gop, so it bought nothing),
+-            # coder and power_efficient (byte-identical output as well). Delay
+-            # is unchanged: old and new both hold one frame at 30 fps, the
+-            # packet for a frame coming back with the next frame's encode()
+-            # call, 33 ms later.
++            # coder and power_efficient (byte-identical output as well).
++            #   flags=+low_delay -> VideoToolbox's low-latency rate control
++            #                      (EnableLowLatencyRateControl), and encode()
++            #                      returns the packet for the frame it was
++            #                      given. Without it each packet came back
++            #                      with the next frame's encode() call, a
++            #                      frame (33 ms at 30 fps) late. Returning on
++            #                      time with yuv420p input needs an FFmpeg
++            #                      whose videotoolboxenc.c waits for the
++            #                      frame in low_delay mode; NV12 is on time
++            #                      either way.
+             # spatial_aq is left to the encoder: disabling it raised luma PSNR
+             # in motion by 1 dB but lowered the still view by the same, and
+             # the flat dark background is where AQ spends its bits.
+@@ -281,7 +288,9 @@ class H264Encoder(Encoder):
+             # the studio: it spends the same quantizer on a still view as on a
+             # pan, so it cost 18.5 Mbps for 35 dB where bitrate mode gives
+             # 40 dB at 5 Mbps once the scene is still.
+-            self.__pix_fmt = "yuv420p"
++            # NV12 is the layout VideoToolbox encodes from; a planar frame is
++            # converted on the way in.
++            self.__pix_fmt = "nv12"
+             # No explicit profile/level is set: videotoolboxenc.c only forwards
+             # kVTCompressionPropertyKey_ProfileLevel to the encoder when a
+             # profile (or level) is requested, so leaving both unset lets the
+@@ -302,6 +311,7 @@ class H264Encoder(Encoder):
+                 "g": "300",
+                 "b": str(bitrate),
+                 "maxrate": str(int(bitrate * 3)),
++                "flags": "+low_delay",
+             }
+         elif self.__encoder == "libx264":
+             self.__pix_fmt = "yuv420p"
+diff --git a/src/aiortc/codecs/hevc.py b/src/aiortc/codecs/hevc.py
+index 68f4024..cac6e12 100644
+--- a/src/aiortc/codecs/hevc.py
++++ b/src/aiortc/codecs/hevc.py
+@@ -291,14 +291,18 @@ class HEVCEncoder(Encoder):
+             # low-latency real-time streaming. VideoToolbox does not expose
+             # explicit B-frame / lookahead / rate-control knobs; the encoder
+             # manages those internally. The options used here are:
+-            #   constant_bit_rate=1 -> request constant bitrate (CBR); this
+-            #                          maps to
+-            #                          kVTCompressionPropertyKey_ConstantBitRate
+-            #                          and requires macOS 13 or newer.
+             #   realtime=1          -> request real-time (low-latency) encoding.
+             #   prio_speed=1        -> prioritize encoding speed over quality.
+             #   max_ref_frames=1    -> limit the number of reference frames.
+-            self.__pix_fmt = "yuv420p"
++            #   flags=+low_delay    -> low-latency rate control, and the packet
++            #                          for a frame returned by the encode()
++            #                          call that was given it rather than the
++            #                          next one; see the h264_videotoolbox
++            #                          branch in h264.py. It is a rate control
++            #                          of its own: with constant_bit_rate=1 as
++            #                          well the encoder fails to open.
++            # NV12 is the layout VideoToolbox encodes from.
++            self.__pix_fmt = "nv12"
+             # No explicit profile/level is set: videotoolboxenc.c only forwards
+             # kVTCompressionPropertyKey_ProfileLevel to the encoder when a
+             # profile (or level) is requested, so leaving both unset lets the
+@@ -309,13 +313,13 @@ class HEVCEncoder(Encoder):
+                 self.__target_bitrate = 3_000_000
+             bitrate = self.__target_bitrate
+             self.__codec_options = {
+-                "constant_bit_rate": "1",
+                 "realtime": "1",
+                 "prio_speed": "1",
+                 "max_ref_frames": "1",
+                 "bf": "0",
+                 "b": str(bitrate),
+                 "maxrate": str(int(bitrate * 1.5)),
++                "flags": "+low_delay",
+             }
+         elif self.__encoder == "libx265":
+             self.__pix_fmt = "yuv420p"
